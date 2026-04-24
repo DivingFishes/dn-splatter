@@ -66,13 +66,69 @@ python dn_splatter/data/download_scripts/mushroom_download.py --room-name koivu 
 
 ### 4.3 其他数据集
 
-仓库也提供这些下载脚本：
+仓库除了 MuSHRoom 示例外，还明确支持这些数据源：
+
+1. `Replica`：室内 RGB-D 数据集，对应 `replica` dataparser。
+2. `ScanNet++`：室内采集数据集，对应 `scannetpp` dataparser。
+3. `Neural-RGBD`：对应 `nrgbd` dataparser。
+4. `SDFStudio / DTU`：对应 `gsdf` dataparser。
+5. `COLMAP / 自定义 Nerfstudio 数据`：对应 `coolermap` 或 `normal-nerfstudio` dataparser。
+
+常用下载/准备脚本如下：
 
 1. `python dn_splatter/data/download_scripts/replica_download.py`
 2. `python dn_splatter/data/download_scripts/nrgbd_download.py`
 3. `python dn_splatter/data/download_scripts/dtu_download.py`
+4. `python dn_splatter/data/mushroom_utils/reference_depth_download.py`
 
-如果你已经有自己的数据，通常不用这些脚本，直接按 Nerfstudio 的数据约定整理即可。
+如果你已经有自己的数据，通常不用这些脚本，直接按 Nerfstudio 的数据约定整理即可；如果是原始图片集，优先走 `coolermap`。
+
+### 4.4 项目里实际用到的数据集
+
+这个仓库的代码和示例里，最常见的验证路径是：
+
+1. `MuSHRoom`：仓库最推荐的示例数据，`pixi run example` 默认就走它。
+2. `Replica`：用于室内场景训练与评估。
+3. `ScanNet++`：用于更大的真实室内场景。
+4. `Neural-RGBD`：用于带 RGB-D 的数据流程。
+5. `DTU / SDFStudio`：用于 `gsdf` 流程。
+6. `COLMAP` 数据：任意已经做过 SfM 的图片集，走 `coolermap`。
+7. `Nerfstudio` 标准数据格式：走 `normal-nerfstudio`。
+
+如果你的目标是“先下载一个能跑通的样例”，优先用 MuSHRoom；如果你的目标是“验证自己的数据”，优先判断它是否可以直接映射到 `coolermap`、`mushroom` 或 `normal-nerfstudio`。
+
+### 4.5 MuSHRoom 跑通验证 Todolist
+
+如果你的目标是先在 MuSHRoom 上跑通一次验证，建议按这个顺序做：
+
+1. 确认环境可用：`conda activate dn-splatter`，然后检查 `ns-train` 是否在 PATH 中。
+2. 下载 MuSHRoom 数据集：优先先下 `koivu` 的 `iphone` 序列；如果你准备跑更完整的流程，再补 `kinect` 或 `faro`。
+3. 下载 Omnidata 法线先验：这是法线监督最常见的预处理依赖。
+4. 可选：下载 Faro reference depth。只有当你要用 MuSHRoom 的 Faro 扫描参考深度时才需要。
+5. 可选：如果你想用 iPhone 序列的 COLMAP 初始化点云，再跑 `poses_to_colmap_sfm.py` 生成或补齐初始点云。
+6. 不需要单独下载 DN-Splatter 的训练模型权重。这个项目的常规验证是直接用代码和数据跑 `ns-train`，不是先拿一个官方 checkpoint 再微调。
+7. 先用最小训练命令跑通一轮，再考虑网格导出和评估。
+
+最小验证优先级可以理解成：数据集 > Omnidata 法线先验 > 训练命令 > 可选的 Faro / COLMAP 辅助步骤。
+
+### 4.6 当前这次验证的实际进展
+
+如果你现在要继续推进“先在 MuSHRoom 上跑通验证”这个任务，可以把当前状态理解成下面这样：
+
+1. 已完成环境配置，`ns-train`、`ns-eval` 等基础命令可用。
+2. 已检查并整理了 MuSHRoom 备份数据的目录结构，当前使用的是 `activity` 这份本地数据。
+3. 已完成四个 capture 的 `normals_from_depth` 预处理。
+4. 已重新下载并校验 ZoeDepth 权重，单目深度预处理可以继续跑。
+5. `mono_depth` 仍在生成中，当前还没有成功落盘。
+
+当前还剩下这些事情：
+
+1. 等待 `mono_depth` 对四个 capture 全部生成完成。
+2. 复查 `mono_depth` 文件数量是否和图片数量对齐。
+3. 如果 `depth` 目录里存在异常帧，再决定是否需要补齐或剔除。
+4. 确认后再进入训练验证阶段，也就是启动一次最小 `ns-train`。
+
+当前这份备份数据的状态可以概括为：`images` 和 `depth` 已基本齐备，`normals_from_depth` 已生成完成，但 `mono_depth` 还未生成成功。
 
 ## 5. 预处理常用步骤
 

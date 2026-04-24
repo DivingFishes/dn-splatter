@@ -563,7 +563,7 @@ class MushroomDataParser(DataParser):
 
                         metadata.update(
                             self._load_3D_points(
-                                iphone_ply_file_path, transform_matrix, scale_factor
+                                kinect_pointcloud_path, transform_matrix, scale_factor
                             )
                         )
 
@@ -865,8 +865,14 @@ class MushroomDataParser(DataParser):
         downsample_folder_prefix: prefix of the newly generated downsampled images
         """
 
+        candidate_path = data_dir / filepath
+        if not candidate_path.exists() and filepath.parent.name in {"depth", "depths"}:
+            raw_candidate_path = data_dir / filepath.parent / "raw" / filepath.name
+            if raw_candidate_path.exists():
+                candidate_path = raw_candidate_path
+
         if self.config.downscale_factor is None:
-            test_img = Image.open(data_dir / filepath)
+            test_img = Image.open(candidate_path)
             h, w = test_img.size
             max_res = max(h, w)
             df = 0
@@ -891,7 +897,7 @@ class MushroomDataParser(DataParser):
                 / f"{downsample_folder_prefix}{self.downscale_factor}"
                 / filepath.name
             )
-        return data_dir / filepath
+        return candidate_path
 
     def mushroom_get_train_eval_split_filename(
         self, image_filenames: List, test_filenames: List

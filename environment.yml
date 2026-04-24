@@ -1,0 +1,24 @@
+name: dn-splatter
+channels:
+  - nvidia/label/cuda-11.8.0
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip>=24,<25
+  - numpy<2
+  - pytorch-cuda=11.8
+  - pytorch>=2.2,<2.3
+  - torchvision>=0.17,<0.18
+  - pyarrow>=15.0.2,<15.1
+  - rerun-sdk>=0.15.1,<0.16
+  - pip
+  - cmake
+  - ninja
+  - pip:
+      - Cython==3.0.11
+      - open3d==0.18.0
+      - pybind11
+      - scikit-build-core
+      - tyro>=0.8.3,<0.9
+      - nerfstudio @ git+https://github.com/nerfstudio-project/nerfstudio.git@a64026f8db23a4233327a1d0303e6082bf5b9805

@@ -30,7 +30,6 @@ try:
     from gsplat.rendering import rasterization
 except ImportError:
     print("Please install gsplat>=1.0.0")
-from gsplat import rasterize_gaussians
 from gsplat.cuda_legacy._torch_impl import quat_to_rotmat
 from gsplat.cuda_legacy._wrapper import num_sh_bases
 from nerfstudio.cameras.camera_optimizers import CameraOptimizer, CameraOptimizerConfig
@@ -559,19 +558,27 @@ class DNSplatterModel(SplatfactoModel):
             # convert normals from world space to camera space
             normals = normals @ camera.camera_to_worlds.squeeze(0)[:3, :3]
 
-            xys = self.xys[0, ...].detach()
-
-            normals_im: Tensor = rasterize_gaussians(  # type: ignore
-                xys,
-                self.depths[0, ...],
-                self.radii,
-                self.conics[0, ...],
-                self.num_tiles_hit[0, ...],
-                normals,
-                torch.sigmoid(opacities_crop),
-                H,
-                W,
-                BLOCK_WIDTH,
+            viewmat = get_viewmat(camera.camera_to_worlds.detach())
+            K = camera.get_intrinsics_matrices().to(normals.device)
+            normals_im, _, _ = rasterization(
+                means=means_crop,
+                quats=quats_crop,
+                scales=torch.exp(scales_crop),
+                opacities=torch.sigmoid(opacities_crop).squeeze(-1),
+                colors=normals,
+                viewmats=viewmat,
+                Ks=K,
+                width=W,
+                height=H,
+                tile_size=BLOCK_WIDTH,
+                packed=False,
+                near_plane=0.01,
+                far_plane=1e10,
+                render_mode="RGB",
+                sh_degree=None,
+                sparse_grad=False,
+                absgrad=False,
+                rasterize_mode=self.config.rasterize_mode,
             )
             # convert normals from [-1,1] to [0,1]
             normals_im = normals_im / normals_im.norm(dim=-1, keepdim=True)

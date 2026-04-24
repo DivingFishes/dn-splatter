@@ -13,6 +13,7 @@ TODO: currently assumes depth and images are equal sizes. This might be a proble
 
 import json
 import os
+from functools import lru_cache
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Literal, Optional
@@ -33,12 +34,23 @@ from rich.progress import track
 from torch import Tensor
 
 from nerfstudio.utils.io import load_from_json
-from nerfstudio.utils.misc import torch_compile
 
 CONSOLE = Console(width=120)
 BATCH_SIZE = 50
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+
+def load_zoe_model():
+    """Load ZoeDepth for monocular depth preprocessing."""
+    repo = "isl-org/ZoeDepth"
+    CONSOLE.print("Loading ZoeDepth checkpoint...")
+    return torch.hub.load(repo, "ZoeD_N", pretrained=True).to(device)
+
+
+@lru_cache(maxsize=1)
+def get_zoe_model():
+    return load_zoe_model()
 
 
 @dataclass
@@ -152,8 +164,7 @@ def run_monocular_depths(
     num_frames = len(images)
 
     if pretrain_model == "zoe":
-        repo = "isl-org/ZoeDepth"
-        zoe = torch_compile(torch.hub.load(repo, "ZoeD_N", pretrained=True).to(device))
+        zoe = get_zoe_model()
     else:
         raise NotImplementedError
     for batch_index in range(0, num_frames, batch_size):
@@ -233,10 +244,7 @@ def depth_from_pretrain(
         batch_size = BATCH_SIZE
         num_frames = len(meta["frames"])
         if pretrain_model == "zoe":
-            repo = "isl-org/ZoeDepth"
-            zoe = torch_compile(
-                torch.hub.load(repo, "ZoeD_N", pretrained=True).to(device)
-            )
+            zoe = get_zoe_model()
         else:
             raise NotImplementedError
         for batch_index in range(0, len(meta["frames"]), batch_size):
@@ -363,10 +371,7 @@ def depth_from_pretrain(
 
         batch_size = BATCH_SIZE
         if pretrain_model == "zoe":
-            repo = "isl-org/ZoeDepth"
-            zoe = torch_compile(
-                torch.hub.load(repo, "ZoeD_N", pretrained=True).to(device)
-            )
+            zoe = get_zoe_model()
         else:
             raise NotImplementedError
         for batch_index in range(0, len(images), batch_size):

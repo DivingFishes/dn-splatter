@@ -63,16 +63,15 @@ https://github.com/maturk/dn-splatter/assets/30566358/9b3ffe9d-5fe9-4b8c-8426-d5
 ## Installation
 <details close>
 <summary> Method 1. Using Conda and Pip</summary>
-    Follow installation instructions for [Nerfstudio](https://docs.nerf.studio/quickstart/installation.html). This repo is compatible with a `nerfstudio` conda environment.
+  Create the Conda environment from the repo root:
+  ```bash
+  conda env create -f environment.yml
+  conda activate dn-splatter
+  pip install setuptools==69.5.1
+  pip install -e .
+  ```
 
-    Clone and install DN-Splatter
-    ```bash
-    conda activate nerfstudio
-    git clone https://github.com/maturk/dn-splatter
-    cd dn_splatter/
-    pip install setuptools==69.5.1
-    pip install -e .
-    ```
+  This environment matches the project’s Python 3.10 / CUDA 11.8 / PyTorch 2.2 stack and adds the runtime packages used directly by the codebase, including `open3d` and `tyro`.
 </details>
 
 <details close>
